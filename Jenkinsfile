@@ -5,6 +5,11 @@ pipeline {
         nodejs 'node'
     }
 
+    environment {
+        PORT = '3001'
+        IMAGE_NAME = 'nodedev'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -24,15 +29,15 @@ pipeline {
             }
         }
 
+        stage('Change Logo') {
+            steps {
+                sh 'cp src/logo-dev.svg src/logo.svg || echo "Using default logo"'
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
-                script {
-                    if (env.BRANCH_NAME == 'main') {
-                        sh 'docker build -t nodemain:v1.0 .'
-                    } else if (env.BRANCH_NAME == 'dev') {
-                        sh 'docker build -t nodedev:v1.0 .'
-                    }
-                }
+                sh "docker build -t ${IMAGE_NAME}:v1.0 ."
             }
         }
 
@@ -43,15 +48,9 @@ pipeline {
             }
         }
 
-        stage('Run Application') {
+        stage('Deploy') {
             steps {
-                script {
-                    if (env.BRANCH_NAME == 'main') {
-                        sh 'docker run -d --expose 3000 -p 3000:3000 nodemain:v1.0'
-                    } else if (env.BRANCH_NAME == 'dev') {
-                        sh 'docker run -d --expose 3001 -p 3001:3000 nodedev:v1.0'
-                    }
-                }
+                sh "docker run -d -p ${PORT}:3000 --name app-dev ${IMAGE_NAME}:v1.0"
             }
         }
     }
